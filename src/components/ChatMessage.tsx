@@ -50,7 +50,7 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
         }
     };
 
-    const sourceRegex = /<details>\s*<summary>Source<\/summary>\s*(.*?)\s*<\/details>/;
+    const sourceRegex = /<details>.*?<summary>\s*Sources?\s*<\/summary>(.*?)<\/details>/s;
     const match = message.content.match(sourceRegex);
 
     const mainContent = match ? message.content.replace(sourceRegex, '').trim() : message.content;
@@ -92,7 +92,9 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                                 </button>
                                 {isSourceExpanded && (
                                     <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                                        {sourceContent}
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {sourceContent}
+                                        </ReactMarkdown>
                                     </div>
                                 )}
                             </div>
