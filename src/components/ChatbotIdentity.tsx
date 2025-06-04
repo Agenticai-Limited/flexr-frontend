@@ -5,19 +5,26 @@ interface ChatbotIdentityProps {
   logoUrl?: string;
 }
 
-export const ChatbotIdentity: React.FC<ChatbotIdentityProps> = ({ name, logoUrl }) => {
+export const ChatbotIdentity = ({ name, logoUrl }: ChatbotIdentityProps) => {
+  const mode = import.meta.env.MODE;
+  const isDev = mode === 'development';
+
   return (
-    <div className="flex items-center space-x-3 p-4 bg-white/70 backdrop-blur-sm border-b border-gray-100">
-      <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-primary-100">
-        {logoUrl ? (
-          <img src={logoUrl} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-primary-600 font-medium text-lg">{name[0].toUpperCase()}</span>
+    <div className="flex items-center justify-between p-4 bg-white/70 backdrop-blur-sm border-b border-gray-100">
+      <div className="flex items-center space-x-3">
+        {logoUrl && (
+          <div className="w-8 h-8">
+            <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+          </div>
         )}
-      </div>
-      <div className="flex flex-col">
-        <span className="font-medium text-gray-900">{name}</span>
-        <span className="text-xs text-gray-500">Assistant</span>
+        <div>
+          <h1 className="text-lg font-semibold text-gray-900">{name}</h1>
+          {isDev && (
+            <div className="text-xs text-gray-500">
+              Environment: <span className="text-primary-600">{mode}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

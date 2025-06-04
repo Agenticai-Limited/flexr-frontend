@@ -52,7 +52,6 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                 query: inputMessage.trim(),
                 file_path: uploadedFile?.url || '',
             });
-            console.log(response);
 
             const assistantMessage: Message = {
                 id: response.id,
@@ -61,7 +60,6 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                 timestamp: new Date().toISOString(),
                 optFeedback: false,
             };
-            console.log(assistantMessage);
 
             setMessages((prev) => [...prev, assistantMessage]);
         } catch (err: any) {

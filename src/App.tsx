@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './components/LoginPage';
-import { ChatInterface } from './components/ChatInterface';
+// import { ChatInterface } from './components/ChatInterface';
 import { QAChatInterface } from './components/QAChatInterface';
 import { UserInfo } from './types';
 

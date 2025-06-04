@@ -1,3 +1,17 @@
+// API Response types
+export interface ApiResponse<T = any> {
+  is_success: boolean;
+  message: string | null;
+  data?: T;
+}
+
+export interface LoginResponse {
+  token: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
+
 // Types for user authentication
 export interface LoginCredentials {
   username: string;

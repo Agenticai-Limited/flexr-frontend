@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "rimraf dist && tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint ."
   },
   "dependencies": {
     "express": "^4.21.2",
