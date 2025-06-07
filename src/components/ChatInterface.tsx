@@ -156,7 +156,7 @@ export const ChatInterface = ({ userInfo }: ChatInterfaceProps) => {
                     {messages.map((message) => (
                         <ChatMessage key={message.id} message={message} userName={userInfo.name} />
                     ))}
-                    {isLoading && <LoadingIndicator chatbotName="AI Assistant" />}
+                    {isLoading && <LoadingIndicator chatbotName="Nova Assistant" />}
                 </div>
 
                 {/* Error Message */}

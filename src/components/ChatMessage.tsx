@@ -5,6 +5,14 @@ import { sendFeedback } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+const StreamingIndicator = () => (
+    <div className="flex items-center space-x-2">
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-75"></div>
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-150"></div>
+    </div>
+);
+
 interface ChatMessageProps {
     message: Message;
     userName?: string;
@@ -55,6 +63,19 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
 
     const mainContent = match ? message.content.replace(sourceRegex, '').trim() : message.content;
     const sourceContent = match ? match[1].trim() : null;
+
+    if (message.metadata?.isStreaming) {
+        return (
+            <div className="flex justify-start">
+                <div className="message-bubble assistant max-w-[80%] rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                        <StreamingIndicator />
+                        <div className="text-gray-700">{message.metadata.streamingContent || 'Thinking...'}</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>

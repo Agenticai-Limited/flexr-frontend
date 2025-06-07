@@ -8,7 +8,7 @@ import {
   LoginResponse,
 } from "../types";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 console.log("API Base URL:", BASE_URL);
 
 const api = axios.create({
@@ -71,15 +71,9 @@ export const login = async (credentials: LoginCredentials) => {
   }
 };
 
-export const sendMessage = async (
-  serviceType: string,
-  request: ChatRequest
-) => {
+export const startQaTask = async (request: ChatRequest) => {
   try {
-    console.log("Sending message to API:", { serviceType, request });
-    const response = await api.post<any>(`/api/${serviceType}`, request);
-    console.log("Raw API Response:", response);
-    console.log("API Response data:", response.data);
+    const response = await api.post<{ task_id: string }>("/api/qa", request);
     return response.data;
   } catch (error) {
     console.error("API call error:", error);

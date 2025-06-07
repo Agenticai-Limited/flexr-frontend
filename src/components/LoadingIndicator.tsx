@@ -12,7 +12,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ chatbotName 
       </div>
       <div className="flex flex-col">
         <span className="text-sm text-gray-600">
-          {chatbotName} is typing...
+          {chatbotName} is preparing the answer...
         </span>
         <span className="flex space-x-1 mt-1">
           <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

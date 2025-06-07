@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Message, UserInfo, UploadedFile } from '../types';
-import { sendMessage } from '../services/api';
+import { startQaTask, BASE_URL } from '../services/api';
 import { ChatMessage } from './ChatMessage';
-import { FileUpload } from './FileUpload';
 import { LoadingIndicator } from './LoadingIndicator'
 import { ChatbotIdentity } from './ChatbotIdentity'
 import logo from '../assets/logo.png';
@@ -14,9 +13,11 @@ interface QAChatInterfaceProps {
 export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
-    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+
+    // Add a ref to hold the EventSource instance
+    const eventSourceRef = useRef<EventSource | null>(null);
 
     useEffect(() => {
         const welcomeMessage: Message = {
@@ -26,45 +27,128 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
             timestamp: new Date().toISOString(),
         };
         setMessages([welcomeMessage]);
+
+        // Clean up the event source when the component unmounts
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+        };
     }, []);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!(inputMessage.trim() || uploadedFile?.url)) return;
 
-        setError('');
         setIsLoading(true);
 
-        if (inputMessage.trim()) {
-            const newMessage: Message = {
-                id: Date.now().toString(),
-                role: 'user',
-                content: inputMessage,
-                timestamp: new Date().toISOString(),
-            };
+        const userMessageContent = inputMessage.trim();
+        const userMessage: Message = {
+            id: Date.now().toString(),
+            role: 'user',
+            content: userMessageContent,
+            timestamp: new Date().toISOString(),
+        };
 
-            setMessages((prev) => [...prev, newMessage]);
-            setInputMessage('');
-        }
+        const assistantMessageId = (Date.now() + 1).toString();
+        const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: 'Thinking...',
+            timestamp: new Date().toISOString(),
+            optFeedback: false,
+            metadata: {
+                isStreaming: true,
+                streamingContent: 'Seeking the best answer...',
+            }
+        };
+
+        setMessages((prev) => [...prev, userMessage, assistantMessage]);
+        setInputMessage('');
 
         try {
-            const response = await sendMessage('qa', {
-                query: inputMessage.trim(),
+            const { task_id } = await startQaTask({
+                query: userMessageContent,
                 file_path: uploadedFile?.url || '',
             });
 
-            const assistantMessage: Message = {
-                id: response.id,
-                role: 'assistant',
-                content: response.raw,
-                timestamp: new Date().toISOString(),
-                optFeedback: false,
+            const eventSource = new EventSource(`${BASE_URL}/api/task-progress/${task_id}`);
+            eventSourceRef.current = eventSource;
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'error') {
+                    console.error('SSE Error:', data.message);
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === assistantMessageId
+                            ? { ...msg, content: "Service not available. Please try again later.", metadata: { isStreaming: false } }
+                            : msg
+                    ));
+                    setIsLoading(false);
+                    eventSource.close();
+                    return;
+                }
+
+                if (data.stage === 'end') {
+                    const finalText = data.message;
+                    // First, mark the message as no longer streaming and clear content
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === assistantMessageId
+                            ? { ...msg, content: '', metadata: { isStreaming: false } }
+                            : msg
+                    ));
+
+                    setIsLoading(false);
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === assistantMessageId
+                            ? { ...msg, content: finalText }
+                            : msg
+                    ));
+                    // typing effect
+                    // let i = 0;
+                    // const typingInterval = setInterval(() => {
+                    //     if (i < finalText.length) {
+                    //         setMessages(prev => prev.map(msg =>
+                    //             msg.id === assistantMessageId
+                    //                 ? { ...msg, content: finalText.slice(0, i + 1) }
+                    //                 : msg
+                    //         ));
+                    //         i++;
+                    //     } else {
+                    //         clearInterval(typingInterval);
+                    //         setIsLoading(false);
+                    //     }
+                    // }, 20); // Typing speed in ms
+
+                    eventSource.close();
+                } else {
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === assistantMessageId
+                            ? { ...msg, metadata: { ...msg.metadata, streamingContent: data.status } }
+                            : msg
+                    ));
+                }
             };
 
-            setMessages((prev) => [...prev, assistantMessage]);
+            eventSource.onerror = () => {
+                console.error('SSE connection error.');
+                setMessages(prev => prev.map(msg =>
+                    msg.id === assistantMessageId
+                        ? { ...msg, content: "Service not available. Please try again later.", metadata: { isStreaming: false } }
+                        : msg
+                ));
+                setIsLoading(false);
+                eventSource.close();
+            };
+
         } catch (err: any) {
-            setError(err.message || 'Failed to send message');
-        } finally {
+            console.error('Failed to start task:', err.message);
+            setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessageId
+                    ? { ...msg, content: "Failed to start the task. Please try again.", metadata: { isStreaming: false } }
+                    : msg
+            ));
             setIsLoading(false);
         }
     };
@@ -101,17 +185,8 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                     {messages.map((message) => (
                         <ChatMessage key={message.id} message={message} userName={userInfo.name} />
                     ))}
-                    {isLoading && <LoadingIndicator chatbotName="AI Assistant" />}
+                    {isLoading && <LoadingIndicator chatbotName="Nova Assistant" />}
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="mx-4 mb-4">
-                        <div className="text-red-600 text-sm p-3 bg-red-50 rounded-lg border border-red-100">
-                            {error}
-                        </div>
-                    </div>
-                )}
 
                 {/* Input Area */}
                 <div className="p-4 border-t border-gray-100 bg-white">
