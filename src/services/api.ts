@@ -48,10 +48,8 @@ export const login = async (credentials: LoginCredentials) => {
       "/api/login",
       credentials
     );
-    console.log("API Response:", response);
-    console.log("Response Data:", response.data);
 
-    if (!response.data.is_success) {
+    if (response.data.status === "error") {
       throw new Error(response.data.message || "Login failed");
     }
 
@@ -73,7 +71,7 @@ export const login = async (credentials: LoginCredentials) => {
 
 export const startQaTask = async (request: ChatRequest) => {
   try {
-    const response = await api.post<{ task_id: string }>("/api/qa", request);
+    const response = await api.post<{ message_id: string }>("/api/qa", request);
     return response.data;
   } catch (error) {
     console.error("API call error:", error);
@@ -84,12 +82,10 @@ export const startQaTask = async (request: ChatRequest) => {
 export const sendFeedback = async (request: FeedbackRequest) => {
   try {
     const response = await api.post<ApiResponse>("/api/feedback", request);
-
-    if (!response.data.is_success) {
-      throw new Error(response.data.message || "Failed to send feedback");
-    }
-
-    return response.data.data;
+    return {
+      status: response.data.status,
+      message: response.data.message,
+    };
   } catch (error) {
     throw handleApiError(error as AxiosError);
   }

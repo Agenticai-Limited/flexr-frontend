@@ -1,17 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
-import { Message, UserInfo, UploadedFile } from '../types';
+import { Message, UserInfo, UploadedFile, ServiceType } from '../types';
 import { startQaTask, BASE_URL } from '../services/api';
 import { ChatMessage } from './ChatMessage';
 import { LoadingIndicator } from './LoadingIndicator'
 import { ChatbotIdentity } from './ChatbotIdentity'
+import { v4 as uuidv4 } from 'uuid';
 import logo from '../assets/logo.png';
+
+const STORAGE_KEY = 'nova_chat_messages';
 
 interface QAChatInterfaceProps {
     userInfo: UserInfo;
 }
 
 export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessages] = useState<Message[]>(() => {
+        const savedMessages = sessionStorage.getItem(STORAGE_KEY);
+        if (savedMessages) {
+            return JSON.parse(savedMessages);
+        }
+
+        const welcomeMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Welcome to Nova Assistant! 👋\n\nHow can I help you today? Please describe your issue..`,
+            timestamp: new Date().toISOString(),
+        };
+        return [welcomeMessage];
+    });
+
     const [inputMessage, setInputMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
@@ -19,16 +36,12 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
     // Add a ref to hold the EventSource instance
     const eventSourceRef = useRef<EventSource | null>(null);
 
-    useEffect(() => {
-        const welcomeMessage: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `Welcome to Nova Assistant! 👋\n\nHow can I help you today? Please describe your issue..`,
-            timestamp: new Date().toISOString(),
-        };
-        setMessages([welcomeMessage]);
 
-        // Clean up the event source when the component unmounts
+    useEffect(() => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }, [messages]);
+
+    useEffect(() => {
         return () => {
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
@@ -56,7 +69,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
             role: 'assistant',
             content: 'Thinking...',
             timestamp: new Date().toISOString(),
-            optFeedback: false,
+            optFeedback: true,
             metadata: {
                 isStreaming: true,
                 streamingContent: 'Seeking the best answer...',
@@ -67,12 +80,18 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
         setInputMessage('');
 
         try {
-            const { task_id } = await startQaTask({
+            const { message_id } = await startQaTask({
                 query: userMessageContent,
                 file_path: uploadedFile?.url || '',
             });
 
-            const eventSource = new EventSource(`${BASE_URL}/api/task-progress/${task_id}`);
+            setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessageId
+                    ? { ...msg, id: message_id }
+                    : msg
+            ));
+
+            const eventSource = new EventSource(`${BASE_URL}/api/task-progress/${message_id}`);
             eventSourceRef.current = eventSource;
 
             eventSource.onmessage = (event) => {
@@ -81,7 +100,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                 if (data.type === 'error') {
                     console.error('SSE Error:', data.message);
                     setMessages(prev => prev.map(msg =>
-                        msg.id === assistantMessageId
+                        msg.id === message_id
                             ? { ...msg, content: "Service not available. Please try again later.", metadata: { isStreaming: false } }
                             : msg
                     ));
@@ -94,14 +113,14 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                     const finalText = data.message;
                     // First, mark the message as no longer streaming and clear content
                     setMessages(prev => prev.map(msg =>
-                        msg.id === assistantMessageId
+                        msg.id === message_id
                             ? { ...msg, content: '', metadata: { isStreaming: false } }
                             : msg
                     ));
 
                     setIsLoading(false);
                     setMessages(prev => prev.map(msg =>
-                        msg.id === assistantMessageId
+                        msg.id === message_id
                             ? { ...msg, content: finalText }
                             : msg
                     ));
@@ -134,7 +153,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
             eventSource.onerror = () => {
                 console.error('SSE connection error.');
                 setMessages(prev => prev.map(msg =>
-                    msg.id === assistantMessageId
+                    msg.id === message_id
                         ? { ...msg, content: "Service not available. Please try again later.", metadata: { isStreaming: false } }
                         : msg
                 ));

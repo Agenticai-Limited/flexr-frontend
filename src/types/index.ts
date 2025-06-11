@@ -1,6 +1,6 @@
 // API Response types
 export interface ApiResponse<T = any> {
-  is_success: boolean;
+  status: "success" | "error";
   message: string | null;
   data?: T;
 }

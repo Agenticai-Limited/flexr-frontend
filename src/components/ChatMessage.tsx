@@ -1,9 +1,10 @@
 import { Message } from '../types';
 import logo from '../assets/logo.png';
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { sendFeedback } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { debounce } from 'lodash';
 
 const StreamingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -24,32 +25,70 @@ interface FeedbackState {
     submitted: boolean;
 }
 
+interface FeedbackStatus {
+    type: 'success' | 'error';
+    message: string;
+}
+
 export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
     const [feedback, setFeedback] = useState<FeedbackState>({ submitted: false });
     const [showFeedbackInput, setShowFeedbackInput] = useState(false);
     const [isSourceExpanded, setIsSourceExpanded] = useState(false);
+    const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus | null>(null);
 
-    const handleFeedback = async (liked: boolean) => {
+    const debouncedSubmit = useCallback(
+        debounce(async (messageId: string, liked: boolean, reason?: string) => {
+            try {
+                const response = await sendFeedback({
+                    messageId,
+                    liked,
+                    reason,
+                });
+
+                if (response.status === 'success') {
+                    setFeedback(prev => ({ ...prev, submitted: true }));
+                    setShowFeedbackInput(false);
+                    setFeedbackStatus({
+                        type: 'success',
+                        message: 'Thank you for your feedback!'
+                    });
+                } else {
+                    setFeedbackStatus({
+                        type: 'error',
+                        message: response.message || 'Failed to submit feedback, please try again later'
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to submit feedback:', error);
+                setFeedbackStatus({
+                    type: 'error',
+                    message: 'Failed to submit feedback, please try again later'
+                });
+            }
+        }, 500), 
+        [] 
+    );
+
+    useEffect(() => {
+        return () => {
+            debouncedSubmit.cancel();
+        };
+    }, [debouncedSubmit]);
+
+    const handleFeedback = (liked: boolean) => {
         setFeedback(prev => ({ ...prev, liked }));
         setShowFeedbackInput(true);
+        setFeedbackStatus(null);
     };
 
-    const submitFeedback = async () => {
+    const submitFeedback = () => {
         if (feedback.liked === undefined) return;
 
-        try {
-            await sendFeedback({
-                messageId: message.id,
-                liked: feedback.liked,
-                reason: feedback.reason,
-                content: message.content,
-                metadata: message.metadata,
-            });
-            setFeedback(prev => ({ ...prev, submitted: true }));
-            setShowFeedbackInput(false);
-        } catch (error) {
-            console.error('Failed to submit feedback:', error);
-        }
+        debouncedSubmit(
+            message.id,
+            feedback.liked,
+            feedback.reason,
+        );
     };
 
     const handleMessageClick = (e: React.MouseEvent) => {
@@ -157,12 +196,23 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                                         Submit
                                     </button>
                                     <button
-                                        onClick={() => setShowFeedbackInput(false)}
+                                        onClick={() => {
+                                            setShowFeedbackInput(false);
+                                            setFeedbackStatus(null);
+                                        }}
                                         className="text-sm px-3 py-1 rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100"
                                     >
                                         Cancel
                                     </button>
                                 </div>
+                                {feedbackStatus && (
+                                    <div className={`text-sm mt-2 px-3 py-2 rounded-md ${feedbackStatus.type === 'success'
+                                        ? 'bg-green-50 text-green-600'
+                                        : 'bg-red-50 text-red-600'
+                                        }`}>
+                                        {feedbackStatus.message}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
