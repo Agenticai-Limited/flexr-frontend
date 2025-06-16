@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { login } from '../services/api';
+import { login, getCurrentUser } from '../services/api';
 import { LoginCredentials, UserInfo } from '../types';
 import logo from '../assets/logo.png';
 
@@ -19,14 +19,19 @@ export const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
     setIsLoading(true);
 
     try {
-      const credentials: LoginCredentials = { username, password };
-      const response = await login(credentials);
-      const userInfo: UserInfo = {
-        name: response.name,
-        email: response.email,
-        phone: response.phone
-      };
-      onLoginSuccess(userInfo);
+      const response = await login({ username, password });
+
+      if (response.success) {
+        // Get user info
+        const userInfo = await getCurrentUser();
+        if (userInfo) {
+          onLoginSuccess(userInfo);
+        } else {
+          setError('Failed to get user information');
+        }
+      } else {
+        setError(response.error.message);
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

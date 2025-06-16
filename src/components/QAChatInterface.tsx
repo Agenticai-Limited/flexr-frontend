@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { debounce } from 'lodash';
 import { Message, UserInfo, UploadedFile, ServiceType } from '../types';
 import { startQaTask, BASE_URL } from '../services/api';
 import { ChatMessage } from './ChatMessage';
@@ -7,11 +8,37 @@ import { ChatbotIdentity } from './ChatbotIdentity'
 import { v4 as uuidv4 } from 'uuid';
 import logo from '../assets/logo.png';
 
-const STORAGE_KEY = 'nova_chat_messages';
+const STORAGE_KEY = 'qa_chat_messages';
 
 interface QAChatInterfaceProps {
     userInfo: UserInfo;
 }
+
+const commonQuestions = [
+    "Can I change my bank account details?",
+    "Can I change my payment date?",
+    "Can I change my payment period?",
+    "Can I add a new authority to the account?",
+    "What information do you hold about me?",
+    "Is my account active?",
+    "Can I get my bond refunded?",
+    "Do you mind us asking why you are thinking of closing your account?",
+    "How do I order a new card?",
+    "Can I order another card?",
+    "Can I cancel a card?",
+    "Can I suspend my card?",
+    "Can the courier leave my card without a signature?",
+    "How long will my card take to arrive?",
+    "Why has my card not arrived?",
+    "Can I use my card straight away?",
+    "What is the limit on my card?",
+    "Can I change the card limit?",
+    "Can we preload the card?",
+    "Why is my card not working?",
+    "Why did my card decline?",
+    "Can you replace my card?",
+    "What is my pin?"
+];
 
 export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
     const [messages, setMessages] = useState<Message[]>(() => {
@@ -23,7 +50,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
         const welcomeMessage: Message = {
             id: Date.now().toString(),
             role: 'assistant',
-            content: `Welcome to Nova Assistant! 👋\n\nHow can I help you today? Please describe your issue..`,
+            content: `Welcome to Nova Assistant! 👋\n\nHow can I help you today?`,
             timestamp: new Date().toISOString(),
         };
         return [welcomeMessage];
@@ -31,15 +58,26 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
 
     const [inputMessage, setInputMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showCommonQuestions, setShowCommonQuestions] = useState(true);
     const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
-
-    // Add a ref to hold the EventSource instance
+    const [displayedQuestions, setDisplayedQuestions] = useState<string[]>([]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
 
+    // Auto scroll to bottom when messages change
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
     useEffect(() => {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     }, [messages]);
+
+    useEffect(() => {
+        const shuffledQuestions = [...commonQuestions].sort(() => 0.5 - Math.random());
+        setDisplayedQuestions(shuffledQuestions.slice(0, 5));
+        // setShowCommonQuestions(false);
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -49,13 +87,21 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
         };
     }, []);
 
-    const handleSendMessage = async (e: React.FormEvent) => {
+
+    const handleQuestionClick = debounce((question: string) => {
+        setInputMessage(question);
+        handleSendMessage({ preventDefault: () => { } } as React.FormEvent, question);
+    }, 300);
+
+    const handleSendMessage = async (e: React.FormEvent, messageContent?: string) => {
+        setShowCommonQuestions(false);
         e.preventDefault();
-        if (!(inputMessage.trim() || uploadedFile?.url)) return;
+        const currentMessage = messageContent || inputMessage.trim();
+        if (!currentMessage && !uploadedFile?.url) return;
 
         setIsLoading(true);
 
-        const userMessageContent = inputMessage.trim();
+        const userMessageContent = currentMessage;
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
@@ -172,6 +218,10 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
         }
     };
 
+    // const handleQuestionClick = (question: string) => {
+    //     setInputMessage(question);
+    // };
+
     const handleFileUploaded = (file: UploadedFile) => {
         console.log('File uploaded:', file);
 
@@ -196,18 +246,37 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
     };
 
     return (
-        <div className="flex h-screen bg-gradient-to-b from-primary-50 to-white">
+        <div className="flex flex-col h-screen bg-gradient-to-b from-primary-50 to-white">
+
             <div className="flex-1 flex flex-col min-w-0 bg-white shadow-soft overflow-hidden">
-                <ChatbotIdentity name="FlexR Nova" logoUrl={logo} />
+                <ChatbotIdentity name="Nova" logoUrl={logo} />
+
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white chat-container">
                     {messages.map((message) => (
                         <ChatMessage key={message.id} message={message} userName={userInfo.name} />
                     ))}
                     {isLoading && <LoadingIndicator chatbotName="Nova Assistant" />}
+                    <div ref={messagesEndRef} /> {/* Scroll anchor */}
                 </div>
 
-                {/* Input Area */}
+                {/* FAQ Section */}
+                {showCommonQuestions && (<div className="px-4 pt-2 pb-1 border-t border-gray-100">
+                    <h3 className="text-left text-sm font-semibold text-gray-600 mb-3">Frequently Asked Questions</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {displayedQuestions.map((question, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleQuestionClick(question)}
+                                className="px-3 py-1 text-xs font-medium text-primary-600 bg-primary-50 rounded-full hover:bg-primary-100 transition-colors"
+                            >
+                                {question}
+                            </button>
+                        ))}
+                    </div>
+                </div>)}
+
+                {/* Input Area - keeping original styles */}
                 <div className="p-4 border-t border-gray-100 bg-white">
                     <div className="flex items-end space-x-4">
                         {/* <FileUpload onFileUploaded={handleFileUploaded} /> */}

@@ -5,13 +5,6 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
-export interface LoginResponse {
-  token: string;
-  name: string;
-  email: string;
-  phone?: string;
-}
-
 // Types for user authentication
 export interface LoginCredentials {
   username: string;
@@ -27,9 +20,10 @@ export interface AuthResponse {
 
 // Types for user information
 export interface UserInfo {
-  name: string;
+  id: string;
+  username: string;
   email: string;
-  phone?: string;
+  // Add other user info fields as needed
 }
 
 // Types for chat messages
@@ -78,3 +72,21 @@ export interface FeedbackRequest {
   content?: string;
   metadata?: any;
 }
+
+export interface LoginSuccessResponse {
+  success: true;
+  data: {
+    access_token: string;
+    token_type: string;
+  };
+}
+
+export interface LoginErrorResponse {
+  success: false;
+  error: {
+    code: number;
+    message: string;
+  };
+}
+
+export type LoginResponse = LoginSuccessResponse | LoginErrorResponse;
