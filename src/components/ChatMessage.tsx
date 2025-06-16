@@ -182,7 +182,7 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                         ) : (
                             <div className="space-y-2">
                                 <textarea
-                                    placeholder="Tell us why... (optional)"
+                                    placeholder="How could this question have been better answered. Please give an example."
                                     value={feedback.reason || ''}
                                     onChange={(e) => setFeedback(prev => ({ ...prev, reason: e.target.value }))}
                                     className="w-full p-2 text-sm border rounded-md"
