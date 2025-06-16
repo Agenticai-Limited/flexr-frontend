@@ -50,7 +50,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
         const welcomeMessage: Message = {
             id: Date.now().toString(),
             role: 'assistant',
-            content: `Hi, Im Nova, your personal assistant. 👋\n\nHow can I help you today?`,
+            content: `Hi, I'm Nova, your personal assistant. 👋\n\nHow can I help you today?`,
             timestamp: new Date().toISOString(),
         };
         return [welcomeMessage];
