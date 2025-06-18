@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { login, getCurrentUser } from '../services/api';
 import { LoginCredentials, UserInfo } from '../types';
 import logo from '../assets/logo.png';
+import flexrLogo from '../assets/flexr-logo.png';
 
 interface LoginPageProps {
   onLoginSuccess: (userInfo: UserInfo) => void;
@@ -41,17 +42,16 @@ export const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-radial from-primary-50 via-gray-50 to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-soft">
+      <div className="max-w-md w-full space-y-8 bg-white/80 backdrop-blur-sm p-10 rounded-xl shadow-soft">
         <div>
-          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center shadow-soft">
-            <img src={logo} alt="Logo" className="w-12 h-12 object-contain" />
+          <div className="flex justify-center items-center space-x-4">
+            <img src={logo} alt="Nova Logo" className="w-16 h-16 object-contain" />
+            <span className="text-3xl font-light text-gray-400">+</span>
+            <img src={flexrLogo} alt="FlexR Logo" className="w-48 h-12 object-contain" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Nova
+            Nova for FlexR
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Please sign in to continue
-          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">

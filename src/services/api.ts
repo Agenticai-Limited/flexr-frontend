@@ -46,8 +46,8 @@ api.interceptors.response.use(
       // Clear auth info
       authToken = null;
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem("isLoggedIn");
-      localStorage.removeItem("userInfo");
+      sessionStorage.removeItem("isLoggedIn");
+      sessionStorage.removeItem("userInfo");
       // Redirect to login page
       window.location.href = "/login";
     }

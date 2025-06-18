@@ -189,7 +189,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                     eventSource.close();
                 } else {
                     setMessages(prev => prev.map(msg =>
-                        msg.id === assistantMessageId
+                        msg.id === message_id
                             ? { ...msg, metadata: { ...msg.metadata, streamingContent: data.status } }
                             : msg
                     ));
@@ -254,7 +254,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white chat-container">
                     {messages.map((message) => (
-                        <ChatMessage key={message.id} message={message} userName={userInfo.name} />
+                        <ChatMessage key={message.id} message={message} userName={userInfo.username} />
                     ))}
                     {isLoading && <LoadingIndicator chatbotName="Nova Assistant" />}
                     <div ref={messagesEndRef} /> {/* Scroll anchor */}
