@@ -27,12 +27,15 @@ export const ChatbotIdentity: FC<ChatbotIdentityProps> = ({ name, logoUrl }) => 
           )}
           <div>
             <h1 className="text-lg font-semibold text-gray-900">{name}</h1>
-            {isDev && (
-              <div className="text-xs text-gray-500">
-                Environment: <span className="text-primary-600">{mode}</span>
-              </div>
-            )}
           </div>
+          <div className="w-8 h-8">
+            <img src='https://img.freepik.com/premium-vector/graduation-cap-silhouette-vector-illustration_1147484-14406.jpg' alt="Graduation" className="w-full h-full object-contain" />
+          </div>
+          {isDev && (
+            <div className="text-xs text-gray-500">
+              Environment: <span className="text-primary-600">{mode}</span>
+            </div>
+          )}
         </div>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <img

@@ -1,6 +1,6 @@
 import { Message } from '../types';
 import logo from '../assets/logo.png';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { sendFeedback } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -17,12 +17,12 @@ const StreamingIndicator = () => (
 interface ChatMessageProps {
     message: Message;
     userName?: string;
+    onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
 }
 
 interface FeedbackState {
     liked?: boolean;
     reason?: string;
-    submitted: boolean;
 }
 
 interface FeedbackStatus {
@@ -30,11 +30,12 @@ interface FeedbackStatus {
     message: string;
 }
 
-export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
-    const [feedback, setFeedback] = useState<FeedbackState>({ submitted: false });
+export const ChatMessage = ({ message, userName = "U", onUpdateMessage }: ChatMessageProps) => {
     const [showFeedbackInput, setShowFeedbackInput] = useState(false);
     const [isSourceExpanded, setIsSourceExpanded] = useState(false);
     const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus | null>(null);
+    const [feedback, setFeedback] = useState<FeedbackState>({});
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const debouncedSubmit = useCallback(
         debounce(async (messageId: string, liked: boolean, reason?: string) => {
@@ -46,12 +47,16 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                 });
 
                 if (response.status === 'success') {
-                    setFeedback(prev => ({ ...prev, submitted: true }));
+                    onUpdateMessage(messageId, { feedbackSubmitted: true });
                     setShowFeedbackInput(false);
                     setFeedbackStatus({
                         type: 'success',
                         message: 'Thank you for your feedback!'
                     });
+                    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                    timeoutRef.current = setTimeout(() => {
+                        setFeedbackStatus(null);
+                    }, 3000);
                 } else {
                     setFeedbackStatus({
                         type: 'error',
@@ -65,20 +70,27 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                     message: 'Failed to submit feedback, please try again later'
                 });
             }
-        }, 500), 
-        [] 
+        }, 500),
+        [onUpdateMessage]
     );
 
     useEffect(() => {
         return () => {
             debouncedSubmit.cancel();
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
         };
     }, [debouncedSubmit]);
 
     const handleFeedback = (liked: boolean) => {
-        setFeedback(prev => ({ ...prev, liked }));
-        setShowFeedbackInput(true);
+        setFeedback({ liked });
         setFeedbackStatus(null);
+        if (liked) {
+            debouncedSubmit(message.id, true);
+        } else {
+            setShowFeedbackInput(true);
+        }
     };
 
     const submitFeedback = () => {
@@ -162,7 +174,7 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                     </div>
                 )}
 
-                {message.optFeedback && !feedback.submitted && (
+                {message.optFeedback && !message.feedbackSubmitted && (
                     <div className="mt-3 border-t pt-3">
                         {!showFeedbackInput ? (
                             <div className="flex space-x-2">
@@ -205,16 +217,18 @@ export const ChatMessage = ({ message, userName = "U" }: ChatMessageProps) => {
                                         Cancel
                                     </button>
                                 </div>
-                                {feedbackStatus && (
-                                    <div className={`text-sm mt-2 px-3 py-2 rounded-md ${feedbackStatus.type === 'success'
-                                        ? 'bg-green-50 text-green-600'
-                                        : 'bg-red-50 text-red-600'
-                                        }`}>
+                                {feedbackStatus?.type === 'error' && (
+                                    <div className="text-sm mt-2 px-3 py-2 rounded-md bg-red-50 text-red-600">
                                         {feedbackStatus.message}
                                     </div>
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+                {message.feedbackSubmitted && feedbackStatus?.type === 'success' && (
+                    <div className="mt-2 text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700">
+                        {feedbackStatus.message}
                     </div>
                 )}
 

@@ -34,6 +34,7 @@ export interface Message {
   timestamp: string;
   renderHTML?: boolean;
   optFeedback?: boolean;
+  feedbackSubmitted?: boolean;
   metadata?: any;
   onClick?: (e: React.MouseEvent) => void;
 }
