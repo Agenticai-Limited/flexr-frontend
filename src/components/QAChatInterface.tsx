@@ -186,7 +186,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                     setIsLoading(false);
                     setMessages((prev) =>
                         prev.map((msg) =>
-                            msg.id === message_id ? { ...msg, content: finalText } : msg
+                            msg.id === message_id ? { ...msg, content: finalText, metadata: { status: true } } : msg
                         )
                     );
                     // typing effect

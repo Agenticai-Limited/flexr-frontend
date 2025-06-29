@@ -174,7 +174,7 @@ export const ChatMessage = ({ message, userName = "U", onUpdateMessage }: ChatMe
                     </div>
                 )}
 
-                {message.optFeedback && !message.feedbackSubmitted && (
+            {message.optFeedback && !message.feedbackSubmitted && message.metadata?.status && (
                     <div className="mt-3 border-t pt-3">
                         {!showFeedbackInput ? (
                             <div className="flex space-x-2">
