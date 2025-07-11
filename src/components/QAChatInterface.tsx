@@ -173,7 +173,7 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                 }
 
                 if (data.stage === "end") {
-                    const finalText = data.message.response;
+                    const finalText = data.message;
                     // First, mark the message as no longer streaming and clear content
                     setMessages((prev) =>
                         prev.map((msg) =>
@@ -205,16 +205,6 @@ export const QAChatInterface = ({ userInfo }: QAChatInterfaceProps) => {
                     //     }
                     // }, 20); // Typing speed in ms
 
-                    eventSource.close();
-                } else if (data.stage === "refined") {
-                    setIsLoading(false);
-                    setMessages((prev) =>
-                        prev.map((msg) =>
-                            msg.id === message_id
-                                ? { ...msg, content: data.message.query, metadata: { status: true } }
-                                : msg
-                        )
-                    );
                     eventSource.close();
                 } else {
                     setMessages((prev) =>
