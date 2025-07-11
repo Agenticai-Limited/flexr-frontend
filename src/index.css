@@ -64,7 +64,7 @@ body {
 }
 
 .prose td {
-  @apply px-3 py-2 whitespace-nowrap text-sm text-gray-500;
+  @apply px-3 py-2 whitespace-pre-line break-words text-sm text-gray-500;
 }
 
 /* Modern chat message styling */
@@ -122,4 +122,10 @@ body {
 /* Form input global styling */
 .form-input {
   @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm transition-all duration-200;
+}
+
+.prose pre,
+.prose code {
+  white-space: pre-wrap;
+  word-break: break-all;
 }
